@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>AURA-OS | Cyber Companion & Drone</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-dark: #030712;
+      --panel-bg: rgba(15, 23, 42, 0.65);
+      --border-glow: rgba(0, 242, 254, 0.2);
+      
+      --eye-cyan: #00f2fe;
+      --eye-glow: rgba(0, 242, 254, 0.7);
+      --eye-green: #10b981;
+      --eye-amber: #f59e0b;
+      --eye-magenta: #ec4899;
+      --eye-pink: #f43f5e;
+      
+      --text-main: #f8fafc;
+      --text-muted: #64748b;
+      
+      --gaze-x: 0px;
+      --gaze-y: 0px;
+      --head-tilt: 0deg;
+    }
+
+    /* THEME PRESETS */
+    body.theme-day {
+      --bg-dark: #0f172a;
+      --panel-bg: rgba(30, 41, 59, 0.75);
+      --eye-cyan: #38bdf8;
+      --eye-glow: rgba(56, 189, 248, 0.7);
+    }
+    body.theme-golden {
+      --bg-dark: #1a0f05;
+      --panel-bg: rgba(67, 30, 15, 0.65);
+      --border-glow: rgba(245, 158, 11, 0.35);
+      --eye-cyan: #fbbf24; 
+      --eye-glow: rgba(245, 158, 11, 0.8);
+    }
+    body.theme-night {
+      --bg-dark: #020617;
+      --panel-bg: rgba(2, 6, 23, 0.8);
+      --eye-cyan: #00f2fe;
+      --eye-glow: rgba(0, 242, 254, 0.7);
+    }
+    body.theme-rain {
+      --bg-dark: #08101e;
+      --panel-bg: rgba(15, 23, 42, 0.8);
+      --border-glow: rgba(96, 165, 250, 0.3);
+      --eye-cyan: #60a5fa;
+      --eye-glow: rgba(96, 165, 250, 0.8);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
+
+    body {
+      background-color: var(--bg-dark); color: var(--text-main);
+      height: 100vh; width: 100vw; overflow: hidden;
+      display: flex; flex-direction: column; justify-content: space-between;
+      padding: 14px; position: relative;
+      transition: filter 0.8s ease, background-color 1.5s ease;
+    }
+
+    body.sleeping { filter: brightness(0.55) contrast(0.95); }
+    #ambient-canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+
+    /* HEADER */
+    .hud-header {
+      position: relative; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--panel-bg); backdrop-filter: blur(14px);
+      border: 1px solid var(--border-glow); border-radius: 14px;
+      padding: 8px 18px; box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      transition: all 1s ease;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .status-badge { font-size: 0.8rem; font-weight: 700; color: var(--eye-cyan); display: flex; align-items: center; gap: 6px; }
+    .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--eye-cyan); box-shadow: 0 0 10px var(--eye-cyan); animation: pulseDot 2s infinite; }
+
+    .theme-select {
+      background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-glow);
+      color: var(--eye-cyan); font-size: 0.75rem; font-weight: 600;
+      padding: 4px 8px; border-radius: 8px; outline: none; cursor: pointer;
+    }
+    .theme-select option { background: #0b1329; color: #fff; }
+
+    .digital-clock { font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; text-align: center; text-shadow: 0 0 12px var(--eye-glow); }
+    .digital-date { font-size: 0.7rem; color: var(--eye-cyan); letter-spacing: 1.5px; text-align: center; font-weight: 600; }
+
+    .vitals-group { display: flex; gap: 12px; font-size: 0.8rem; }
+    .vital-val { color: var(--eye-cyan); font-weight: 700; }
+
+    /* STAGE WITH ROBOT & MINI DRONE */
+    .hud-stage {
+      position: relative; z-index: 10; flex: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+
+    .companions-wrapper {
+      position: relative; display: flex; align-items: center; justify-content: center;
+      width: 440px; height: 180px;
+    }
+
+    /* MINI PET DRONE: "SPARK" */
+    .mini-drone {
+      position: absolute; right: 10px; top: 15px; width: 55px; height: 55px;
+      background: radial-gradient(circle at 35% 35%, #1e293b, #030712);
+      border: 2px solid var(--border-glow); border-radius: 50%;
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; animation: droneHover 3s ease-in-out infinite alternate;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .mini-drone:active { transform: scale(0.85) rotate(180deg); }
+    .mini-drone.spin { animation: droneSpin 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+
+    .drone-eye {
+      width: 24px; height: 14px; background: var(--eye-cyan);
+      border-radius: 10px; box-shadow: 0 0 12px var(--eye-glow);
+      transition: all 0.2s;
+    }
+    .drone-thruster {
+      width: 14px; height: 4px; background: #38bdf8;
+      border-radius: 2px; margin-top: 4px; box-shadow: 0 0 10px #38bdf8;
+      animation: thrustPulse 0.3s infinite alternate;
+    }
+
+    /* MAIN ROBOT HEAD */
+    .robot-head {
+      position: relative; width: 250px; height: 155px;
+      background: radial-gradient(circle at center, #111827 0%, #030712 100%);
+      border: 3px solid rgba(255, 255, 255, 0.08); border-radius: 90px;
+      box-shadow: 0 0 40px rgba(0, 242, 254, 0.15), inset 0 0 20px rgba(0,0,0,0.8);
+      display: flex; align-items: center; justify-content: center; gap: 34px;
+      cursor: pointer; transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s;
+      animation: gentleFloat 5s ease-in-out infinite;
+      transform: rotate(var(--head-tilt));
+    }
+
+    .robot-eye {
+      width: 44px; height: 74px; background: var(--eye-cyan); border-radius: 26px;
+      box-shadow: 0 0 25px var(--eye-glow), inset 0 0 10px #fff; position: relative;
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s, box-shadow 0.4s, height 0.08s ease-out, border-radius 0.15s;
+      transform: translate(var(--gaze-x), var(--gaze-y));
+    }
+    .robot-eye::after {
+      content: ''; position: absolute; top: 12px; left: 10px;
+      width: 10px; height: 14px; background: #fff; border-radius: 50%; opacity: 0.8;
+    }
+
+    /* STATES */
+    .robot-head.standby .robot-eye {
+      height: 10px !important; border-radius: 8px; transform: translateY(12px);
+      background: #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+    }
+    .sleep-zzz { position: absolute; right: 18px; top: -10px; font-size: 1.4rem; font-weight: 800; color: #38bdf8; opacity: 0; pointer-events: none; }
+    .robot-head.standby .sleep-zzz { animation: floatZzz 3s ease-in-out infinite; }
+
+    .robot-head.happy .robot-eye {
+      height: 24px !important; border-radius: 26px 26px 4px 4px !important;
+      background: var(--eye-pink) !important; box-shadow: 0 0 35px var(--eye-pink) !important;
+      transform: translateY(-8px) scaleY(1.3);
+    }
+
+    .robot-head.listening { box-shadow: 0 0 50px rgba(16, 185, 129, 0.4); }
+    .robot-head.listening .robot-eye { background: var(--eye-green); box-shadow: 0 0 35px rgba(16, 185, 129, 0.9), inset 0 0 12px #fff; height: 82px; width: 48px; }
+
+    .robot-head.thinking { box-shadow: 0 0 50px rgba(245, 158, 11, 0.4); }
+    .robot-head.thinking .robot-eye { background: var(--eye-amber); box-shadow: 0 0 30px rgba(245, 158, 11, 0.8); height: 35px; border-radius: 18px; }
+
+    .robot-head.speaking { box-shadow: 0 0 60px rgba(236, 72, 153, 0.4); }
+    .robot-head.speaking .robot-eye { background: var(--eye-magenta); box-shadow: 0 0 35px rgba(236, 72, 153, 0.8), inset 0 0 10px #fff; }
+
+    .state-title { margin-top: 10px; font-size: 0.8rem; font-weight: 800; letter-spacing: 3px; color: var(--eye-cyan); text-transform: uppercase; text-shadow: 0 0 8px var(--eye-cyan); }
+
+    /* SUBTITLES */
+    .subtitles-container { width: 88%; max-width: 660px; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .chat-bubble { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 7px 14px; font-size: 0.9rem; line-height: 1.35; }
+    .chat-bubble.user { border-left: 3px solid var(--eye-cyan); }
+    .chat-bubble.aura { border-left: 3px solid var(--eye-magenta); }
+    .chat-tag { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); margin-right: 6px; }
+
+    /* DOCK */
+    .hud-dock { position: relative; z-index: 10; display: flex; justify-content: center; gap: 8px; }
+    .cyber-btn { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-glow); color: var(--text-main); padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.25s; }
+    .cyber-btn:hover, .cyber-btn:active { background: rgba(0, 242, 254, 0.2); box-shadow: 0 0 15px var(--border-glow); transform: translateY(-2px); }
+    .cyber-btn.danger { border-color: rgba(239, 68, 68, 0.4); color: #f87171; }
+
+    /* MODAL */
+    .hud-modal { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-content { background: #090f1d; border: 1px solid var(--eye-cyan); border-radius: 16px; width: 85%; max-width: 650px; padding: 20px; box-shadow: 0 0 35px rgba(0, 242, 254, 0.25); }
+
+    /* ANIMATIONS */
+    @keyframes gentleFloat { 0%, 100% { transform: translateY(0) rotate(var(--head-tilt)); } 50% { transform: translateY(-8px) rotate(var(--head-tilt)); } }
+    @keyframes droneHover { 0% { transform: translateY(0) rotate(0deg); } 100% { transform: translateY(-16px) rotate(8deg); } }
+    @keyframes droneSpin { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(180deg) scale(1.2); } 100% { transform: rotate(360deg) scale(1); } }
+    @keyframes thrustPulse { from { opacity: 0.6; transform: scaleX(0.8); } to { opacity: 1; transform: scaleX(1.3); } }
+    @keyframes floatZzz { 0% { opacity: 0; transform: translate(0, 0) scale(0.6); } 50% { opacity: 0.9; } 100% { opacity: 0; transform: translate(25px, -35px) scale(1.3); } }
+    @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  </style>
+</head>
+<body class="sleeping">
+  <canvas id="ambient-canvas"></canvas>
+
+  <!-- TOP HEADER -->
+  <header class="hud-header">
+    <div class="header-left">
+      <div class="status-badge"><span class="pulse-dot" id="status-dot"></span> AURA CORE</div>
+      <select class="theme-select" id="theme-selector" onchange="changeTheme(this.value)">
+        <option value="auto">🌓 Auto (Time)</option>
+        <option value="day">☀️ Day</option>
+        <option value="golden">🌇 Golden Hour</option>
+        <option value="night">🌙 Night</option>
+        <option value="rain">🌧️ Rainy</option>
+      </select>
+    </div>
+
+    <div>
+      <div class="digital-clock" id="digital-clock">00:00:00</div>
+      <div class="digital-date" id="digital-date">SYSTEM READY</div>
+    </div>
+
+    <div class="vitals-group">
+      <div>CPU <span id="val-cpu" class="vital-val">--%</span></div>
+      <div>TEMP <span id="val-temp" class="vital-val">--°C</span></div>
+      <div>RAM <span id="val-ram" class="vital-val">--%</span></div>
+    </div>
+  </header>
+
+  <!-- CENTER ROBOT & MINI DRONE -->
+  <main class="hud-stage">
+    <div class="companions-wrapper">
+      <div class="robot-head standby" id="robot-avatar" onclick="patHead()">
+        <div class="sleep-zzz">Zzz</div>
+        <div class="robot-eye left-eye"></div>
+        <div class="robot-eye right-eye"></div>
+      </div>
+
+      <!-- Mini Pet Drone -->
+      <div class="mini-drone" id="mini-drone" onclick="petDrone()">
+        <div class="drone-eye"></div>
+        <div class="drone-thruster"></div>
+      </div>
+    </div>
+    
+    <div class="state-title" id="companion-state">ASLEEP (STANDBY)</div>
+
+    <div class="subtitles-container">
+      <div class="chat-bubble user">
+        <span class="chat-tag">YOU:</span> <span id="user-text">Say "Alexa" to wake me up...</span>
+      </div>
+      <div class="chat-bubble aura">
+        <span class="chat-tag">AURA:</span> <span id="aura-text">Zzz... I'm resting. Tap or speak to wake me.</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- BOTTOM DOCK -->
+  <footer class="hud-dock">
+    <button class="cyber-btn" onclick="sendQuickPrompt('What time is it?')">⏱️ Time</button>
+    <button class="cyber-btn" onclick="toggleTelemetry()">📊 Telemetry</button>
+    <button class="cyber-btn" onclick="sendQuickPrompt('Tell me a fun fact')">✨ Fun Fact</button>
+    <button class="cyber-btn" onclick="triggerWake()">🤖 Wake Up</button>
+    <button class="cyber-btn" onclick="patHead()">💖 Pet</button>
+    <button class="cyber-btn danger" onclick="toggleMute()">🔇 Mute</button>
+  </footer>
+
+  <!-- TELEMETRY MODAL -->
+  <div class="hud-modal" id="telemetry-modal">
+    <div class="modal-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="color:var(--eye-cyan); font-size:1.1rem;">LIVE SYSTEM TELEMETRY</h3>
+        <button onclick="toggleTelemetry()" style="background:none; border:none; color:#fff; font-size:1.4rem; cursor:pointer;">✕</button>
+      </div>
+      <div style="height:220px;">
+        <canvas id="vitalsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentState = 'standby';
+    let selectedTheme = 'auto';
+    let lipSyncInterval = null;
+    let ws = null;
+
+    // --- 1. AMBIENT CANVAS (STARS + RAIN PARTICLES) ---
+    const canvas = document.getElementById('ambient-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      initParticles();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function initParticles() {
+      particles = Array.from({ length: 60 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        len: Math.random() * 18 + 10,
+        speed: Math.random() * 5 + 3,
+        alpha: Math.random() * 0.7 + 0.2
+      }));
+    }
+    resizeCanvas();
+
+    function changeTheme(val) {
+      selectedTheme = val;
+      applyTheme();
+    }
+
+    function applyTheme() {
+      let activeTheme = selectedTheme;
+      if (activeTheme === 'auto') {
+        const hour = new Date().getHours();
+        if (hour >= 6 && hour < 18) activeTheme = 'day';
+        else if (hour >= 18 && hour < 20) activeTheme = 'golden';
+        else activeTheme = 'night';
+      }
+
+      const isSleeping = currentState.toLowerCase() === 'standby' ? 'sleeping' : '';
+      document.body.className = `theme-${activeTheme} ${isSleeping}`.trim();
+    }
+
+    function renderAmbient() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const isRain = document.body.classList.contains('theme-rain');
+      const isGolden = document.body.classList.contains('theme-golden');
+
+      if (isRain) {
+        ctx.strokeStyle = '#60a5fa';
+        ctx.lineWidth = 1.2;
+        particles.forEach(p => {
+          ctx.globalAlpha = p.alpha;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - 2, p.y + p.len);
+          ctx.stroke();
+          p.y += p.speed * 2.2;
+          p.x -= 0.5;
+          if (p.y > canvas.height) { p.y = -10; p.x = Math.random() * canvas.width; }
+        });
+      } else {
+        ctx.fillStyle = isGolden ? '#f59e0b' : '#00f2fe';
+        particles.forEach(p => {
+          ctx.globalAlpha = p.alpha;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, Math.min(p.len / 10, 2), 0, Math.PI * 2);
+          ctx.fill();
+          p.y -= p.speed * 0.15;
+          if (p.y < 0) { p.y = canvas.height; p.x = Math.random() * canvas.width; }
+        });
+      }
+      requestAnimationFrame(renderAmbient);
+    }
+    renderAmbient();
+
+    // --- 2. INTERACTIVE PETTING & MINI DRONE ---
+    function patHead() {
+      const robot = document.getElementById('robot-avatar');
+      robot.classList.add('happy');
+      document.getElementById('aura-text').innerText = "Hehe! That tickles! ^_^";
+      spinDrone();
+      setTimeout(() => robot.classList.remove('happy'), 2500);
+    }
+
+    function petDrone() {
+      spinDrone();
+      document.getElementById('aura-text').innerText = "Spark: *Happy Drone Chirps!*";
+    }
+
+    function spinDrone() {
+      const drone = document.getElementById('mini-drone');
+      drone.classList.remove('spin');
+      void drone.offsetWidth;
+      drone.classList.add('spin');
+    }
+
+    // --- 3. KINETIC AUDIO LIP-SYNC ---
+    function triggerLipSync() {
+      if (lipSyncInterval) clearInterval(lipSyncInterval);
+      const eyes = document.querySelectorAll('.robot-eye');
+      lipSyncInterval = setInterval(() => {
+        if (currentState.toLowerCase() !== 'speaking') {
+          clearInterval(lipSyncInterval);
+          eyes.forEach(eye => eye.style.height = '');
+          return;
+        }
+        const amp = Math.floor(Math.random() * 60) + 25;
+        eyes.forEach(eye => eye.style.height = `${amp}px`);
+      }, 70);
+    }
+
+    // --- 4. GAZE TRACKING ---
+    setInterval(() => {
+      const s = currentState.toLowerCase();
+      if (s === 'standby' || s === 'speaking') {
+        document.documentElement.style.setProperty('--gaze-x', '0px');
+        document.documentElement.style.setProperty('--gaze-y', '0px');
+        document.documentElement.style.setProperty('--head-tilt', '0deg');
+        return;
+      }
+      const tilt = (Math.random() - 0.5) * 8;
+      const gx = (Math.random() - 0.5) * 24;
+      const gy = (Math.random() - 0.5) * 16;
+      document.documentElement.style.setProperty('--head-tilt', `${tilt}deg`);
+      document.documentElement.style.setProperty('--gaze-x', `${gx}px`);
+      document.documentElement.style.setProperty('--gaze-y', `${gy}px`);
+    }, 1800);
+
+    // --- 5. CLOCK & TICK LOOP ---
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('digital-clock').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('digital-date').innerText = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+      applyTheme();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // --- 6. STATE CONTROLLER ---
+    function setAssistantState(state, userText = "", auraText = "") {
+      currentState = state.toLowerCase();
+      const robot = document.getElementById('robot-avatar');
+      robot.className = 'robot-head ' + currentState;
+      document.getElementById('companion-state').innerText = state.toUpperCase();
+      applyTheme();
+
+      if (userText) document.getElementById('user-text').innerText = userText;
+      if (auraText) document.getElementById('aura-text').innerText = auraText;
+
+      document.querySelectorAll('.robot-eye').forEach(eye => eye.style.height = '');
+      if (currentState === 'speaking') {
+        triggerLipSync();
+        spinDrone();
+      }
+    }
+
+    // --- 7. WEBSOCKET CLIENT ---
+    function connectWebSocket() {
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+      
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        const dot = document.getElementById('status-dot');
+        if (dot) dot.style.background = 'var(--eye-green)';
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.state) {
+            setAssistantState(data.state, data.user_text || "", data.assistant_text || "");
+          }
+
+          if (data.cpu_temp !== undefined) {
+            const temp = Math.round(data.cpu_temp);
+            const cpu = Math.round(data.cpu_percent);
+            const ram = Math.round(data.ram_percent);
+
+            document.getElementById('val-temp').innerText = `${temp}°C`;
+            document.getElementById('val-cpu').innerText = `${cpu}%`;
+            document.getElementById('val-ram').innerText = `${ram}%`;
+
+            if (vitalsChart) {
+              vitalsChart.data.datasets[0].data.push(temp); vitalsChart.data.datasets[0].data.shift();
+              vitalsChart.data.datasets[1].data.push(cpu); vitalsChart.data.datasets[1].data.shift();
+              vitalsChart.data.datasets[2].data.push(ram); vitalsChart.data.datasets[2].data.shift();
+              vitalsChart.update('none');
+            }
+          }
+        } catch (err) {
+          console.error("WebSocket message parse error:", err);
+        }
+      };
+
+      ws.onclose = () => {
+        const dot = document.getElementById('status-dot');
+        if (dot) dot.style.background = 'var(--eye-magenta)';
+        setTimeout(connectWebSocket, 2000);
+      };
+
+      ws.onerror = () => ws.close();
+    }
+    connectWebSocket();
+
+    // --- 8. TELEMETRY & ACTIONS ---
+    let vitalsChart = null;
+    function initTelemetryChart() {
+      const c = document.getElementById('vitalsChart').getContext('2d');
+      vitalsChart = new Chart(c, {
+        type: 'line',
+        data: {
+          labels: Array(15).fill(''),
+          datasets: [
+            { label: 'Temp (°C)', borderColor: '#ec4899', backgroundColor: 'rgba(236,72,153,0.1)', data: Array(15).fill(null), tension: 0.3, fill: true },
+            { label: 'CPU %', borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', data: Array(15).fill(null), tension: 0.3, fill: true },
+            { label: 'RAM %', borderColor: '#00f2fe', backgroundColor: 'rgba(0,242,254,0.1)', data: Array(15).fill(null), tension: 0.3, fill: true }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { min: 10, max: 100, grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#64748b' } }, x: { display: false } },
+          plugins: { legend: { labels: { color: '#f8fafc', font: { size: 10 } } } }
+        }
+      });
+    }
+
+    function toggleTelemetry() {
+      const modal = document.getElementById('telemetry-modal');
+      const isFlex = modal.style.display === 'flex';
+      modal.style.display = isFlex ? 'none' : 'flex';
+      if (!isFlex && !vitalsChart) initTelemetryChart();
+    }
+
+    function triggerWake() {
+      setAssistantState('listening', 'Wake trigger tapped...', 'Listening to you...');
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: "wake" }));
+      }
+    }
+
+    function sendQuickPrompt(text) {
+      setAssistantState('thinking', text, 'Thinking...');
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: "query", text: text }));
+      }
+    }
+
+    function toggleMute() {
+      setAssistantState('standby', 'Mute toggled.', 'Microphone inactive.');
+      fetch('/api/mute', { method: 'POST' }).catch(() => {});
+    }
+  </script>
+</body>
+</html>
