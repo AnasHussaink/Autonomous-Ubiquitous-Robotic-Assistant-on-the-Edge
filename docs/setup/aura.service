@@ -1,0 +1,13 @@
+[Unit]
+Description=AURA Raspberry Pi Voice Companion
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Desktop/Pi-Edge-Smart-Display
+ExecStart=/bin/bash %h/Desktop/Pi-Edge-Smart-Display/docs/setup/start-aura.sh
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

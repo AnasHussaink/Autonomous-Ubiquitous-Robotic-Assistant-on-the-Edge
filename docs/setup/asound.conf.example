@@ -1,0 +1,23 @@
+# Reference for the confirmed Pi 4 / googlevoicehat-soundcard driver setup.
+# Verify the card identifier with `cat /proc/asound/cards` before installing.
+pcm.!default {
+    type asym
+    playback.pcm {
+        type plug
+        slave.pcm "hw:sndrpigooglevoi,0"
+    }
+    capture.pcm {
+        type plug
+        slave {
+            pcm "hw:sndrpigooglevoi,0"
+            format S32_LE
+            channels 2
+            rate 48000
+        }
+    }
+}
+
+ctl.!default {
+    type hw
+    card sndrpigooglevoi
+}
