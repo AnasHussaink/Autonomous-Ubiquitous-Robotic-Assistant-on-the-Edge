@@ -1,200 +1,78 @@
-# Pi-Edge-Smart-Display
+# Pi Edge Smart Display — Local AI Assistant
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Hardware: Raspberry Pi](https://img.shields.io/badge/Hardware-Raspberry%20Pi-C51A4A?logo=raspberry-pi)](https://www.raspberrypi.com/)
+A privacy-focused edge AI assistant and interactive smart display built around Raspberry Pi hardware. The system combines local speech processing, LLM reasoning, computer vision, web UI, and hardware audio I/O.
 
-## Description
-**Pi-Edge-Smart-Display** is a fully localized, privacy-first smart assistant and interactive display. It leverages the compute power of a Raspberry Pi combined with a Google Coral Edge TPU to deliver real-time voice interaction, edge-based computer vision, and dynamic UI updates—all without relying on cloud processing or external APIs. 
+## Architecture
 
-The system orchestrates a localized Large Language Model (LLM) for reasoning, accelerated speech-to-text/text-to-speech pipelines, and hardware-accelerated face detection, ensuring user data never leaves the device.
+Microphone → speech recognition → local LLM → TTS → speaker  
+Camera → Coral Edge TPU vision → FastAPI backend → display/UI
 
-## Components
+The backend separates audio, LLM, vision, API, and UI services so components can be developed and tested independently.
 
-### Hardware
-* **Compute:** Raspberry Pi (4/5)
-* **Vision Accelerator:** Google Coral Edge TPU (USB)
-* **Display:** 7-inch HDMI Display
-* **Camera:** OV5647 Camera Module (CSI)
-* **Audio Input:** INMP441 Omnidirectional Microphone (I2S)
-* **Audio Output:** MAX98357A I2S Amplifier + Speaker
+## Hardware
 
-### Software Stack
-* **Vision / Face Detection:** TensorFlow Lite (Edge TPU Runtime)
-* **Wake Word:** openWakeWord / Porcupine
-* **Speech-to-Text (ASR):** Whisper.cpp
-* **Reasoning (LLM):** Ollama / llama.cpp (e.g., Qwen 1.5B, Llama-3.2-1B)
-* **Text-to-Speech (TTS):** Piper TTS
-* **Orchestration Backend:** Python + FastAPI
-* **Frontend UI:** React / Vue.js (running in Chromium Kiosk Mode)
+- Raspberry Pi 4/5
+- Google Coral USB Edge TPU
+- 7-inch HDMI display
+- OV5647 CSI camera
+- INMP441 I2S microphone
+- MAX98357A I2S amplifier and speaker
 
----
+## Software Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | Python + FastAPI |
+| Speech-to-text | Whisper.cpp |
+| LLM | Ollama / llama.cpp |
+| Local models | Qwen / Llama-family |
+| TTS | Piper |
+| Vision | TensorFlow Lite + Coral Edge TPU |
+| Frontend | React/Vue + Vite |
+| Testing | pytest |
+| Display | Chromium kiosk mode |
+
+## Design Goals
+
+### Privacy-first
+Core speech, reasoning, and vision workloads are designed for local processing so sensitive data can remain on the device.
+
+### Hardware acceleration
+The Coral Edge TPU accelerates supported computer-vision workloads and reduces CPU load.
+
+### Modular services
+Audio, LLM, vision, API, UI, and hardware configuration are separated into focused modules.
 
 ## Project Structure
 
-This repository follows a modular, service-oriented architecture to separate hardware interfaces, AI models, and the web frontend.
-
-```text
-pi-edge-smart-display/
-├── hardware/               # Hardware configuration and testing scripts
-│   ├── asound.conf         # ALSA audio configuration for I2S shared clock
-│   └── boot_config.txt     # Pi /boot/firmware/config.txt overlays
-├── models/                 # Local directory for downloaded weights (Git-ignored)
-│   ├── llm/                # GGUF files for llama.cpp/Ollama
-│   ├── vision/             # .tflite models compiled for Edge TPU
-│   └── voice/              # Whisper and Piper model files
-├── src/                    # Core Python backend and orchestration
-│   ├── api/                # FastAPI application and routes
-│   ├── audio/              # I2S input/output, wake word, and TTS managers
-│   ├── llm/                # Prompts, function calling, and Ollama integration
-│   ├── vision/             # Coral TPU face detection and camera loop
-│   └── main.py             # Main execution loop and service manager
-├── tests/                  # Unit and integration tests (gtest/pytest)
-│   ├── test_audio.py
-│   └── test_vision.py
-├── ui/                     # Frontend web application
-│   ├── public/             
-│   ├── src/                # React/Vue components (Dashboard, Chat, widgets)
-│   ├── package.json
-│   └── vite.config.js
-├── scripts/                # Utility scripts (setup, install, run)
-│   ├── setup_env.sh        # Installs dependencies and apt packages
-│   └── start_kiosk.sh      # Launches Chromium in full-screen kiosk mode
-├── .gitignore
-├── requirements.txt        # Python dependencies
-└── README.md
-
-```
-
----
+hardware/ — Raspberry Pi and ALSA configuration  
+models/ — local model files, excluded from Git  
+src/api/ — FastAPI routes  
+src/audio/ — I2S, wake word, and TTS  
+src/llm/ — prompts and local LLM integration  
+src/vision/ — camera and Edge TPU processing  
+tests/ — unit and integration tests  
+ui/ — web interface  
+scripts/ — setup and kiosk launch scripts
 
 ## Installation
 
-### Python 3.10 Setup (via uv)
+The project targets Python 3.10+ on Raspberry Pi. Create an isolated environment, install the Python dependencies, configure the required local AI runtimes, and keep model weights and credentials outside Git.
 
-To avoid system package conflicts on your Raspberry Pi and ensure compatibility with the project's ML libraries, we recommend managing Python and your virtual environment using `uv`, an extremely fast Python project manager.
-
-**1. Install uv**
-Run the official standalone installer script:
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-```
-
-*Note: You will need to restart your terminal or run `source ~/.bashrc` for the `uv` command to be recognized.*
-
-**2. Install Python 3.10**
-Instead of building from source, `uv` instantly fetches pre-compiled Python binaries:
-
-```bash
-uv python install 3.10
-
-```
-
-**3. Create the Virtual Environment**
-Navigate to the root directory of this repository and tell `uv` to create a virtual environment explicitly locked to Python 3.10:
-
-```bash
-cd pi-edge-smart-display
-uv venv --python 3.10
-
-```
-
-**4. Activate the Environment**
-Activate the new virtual environment before running the project or installing the `requirements.txt`:
-
-```bash
-source .venv/bin/activate
-
-```
-
-*Verify the installation by running `python --version`. It should output a Python 3.10.x version.*
-
----
-
-*(You can drop this right into your README above the **Testing** section. Just let me know if you also need the dependency installation step (`uv pip install -r requirements.txt`) added in!)*
-
----
-
-
-Here is the complete **Installation** section updated to include the Ollama setup and the specific `qwen2.5:1.5b` model download, matching the default parameters in your `llm_node.py` file.
-
-You can drop this right in place of the previous Installation section.
-
----
-
-### LLM Setup (Ollama & Qwen)
-
-Since this project runs the reasoning engine entirely on-device, you will need to install Ollama and download the specific language model used in the orchestration backend.
-
-**1. Install Ollama**
-Run the official Linux installation script. This will automatically detect your Raspberry Pi's ARM64 architecture and set up Ollama as a background service:
-
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
-
-```
-
-**2. Download the Qwen Model**
-The Python backend (`src/llm/llm_node.py`) is configured to use the Qwen 2.5 1.5B model by default. Pull this model to your local hardware:
-
-```bash
-ollama pull qwen2.5:1.5b
-
-```
-
-*Note: If you plan on running the backend hardware integration tests via `pytest`, the Ollama service must be running in the background and this specific model must be pulled first to avoid a `ResponseError`.*
-
+For the configured Ollama workflow, the example model is qwen2.5:1.5b.
 
 ## Testing
 
-This project uses `pytest` for backend unit and integration testing. The tests are configured to ensure logical isolation and prevent collisions with global system environments.
+Fast tests can be run without integration dependencies. Integration tests require the configured local AI services and hardware.
 
-### Running Tests
+## Engineering Highlights
 
-**1. Run Fast Unit Tests Only** To run isolated tests that mock hardware and external servers (ideal for rapid development):
+Edge AI on constrained hardware, local speech and language processing, hardware-accelerated vision, I2S audio, FastAPI orchestration, web-based dashboard development, and automated testing.
 
-```bash
-pytest -m "not integration"
+## Roadmap
 
-```
+Improve conversational state handling, expand vision, optimize inference latency, improve device-status UI, and add more autonomous assistant behaviours.
 
-**2. Run Full Hardware Integration Tests** To run tests that actually trigger the local LLM, GPU, or Audio hardware (requires services like Ollama to be running):
+## License
 
-```bash
-pytest -m "integration"
-
-```
-
-**3. Run with Debug Logging** By default, `pytest` hides print statements and logs. To view real-time debug outputs and see exactly what the backend is processing, append the following flags:
-
-```bash
-pytest -m "not integration" -s --log-cli-level=DEBUG
-
-```
-
-### Troubleshooting: ROS 2 Environment Collisions
-
-Because this project's virtual environment relies on strict pathing, having a global **ROS 2** environment sourced in your terminal (e.g., `/opt/ros/jazzy/`) can cause `pytest` to crash. ROS aggressively injects its own plugins (like `launch_testing`) into the system path, which lack the necessary dependencies inside this project's `.venv`.
-
-**The built-in fix:**
-The included `pytest.ini` file is configured to lock down the import paths and prevent wandering:
-
-```ini
-[pytest]
-pythonpath = .
-addopts = --import-mode=importlib
-markers =
-    integration: marks tests as integration tests that require the Ollama server
-```
-
-**The manual override:**
-If the `pytest.ini` isolation fails and ROS 2 is still causing `ModuleNotFoundError` crashes before the tests even start, temporarily blind Python to the global environment variables by running your tests with an empty `PYTHONPATH`:
-
-```bash
-PYTHONPATH="" pytest
-
-```
-
-*(Tip: Create a terminal alias like `alias pycl="PYTHONPATH=\"\" pytest"` for convenience if you frequently develop with ROS 2 active).*
+MIT — see LICENSE.
