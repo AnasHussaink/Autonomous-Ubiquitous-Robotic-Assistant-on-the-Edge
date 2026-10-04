@@ -1,5 +1,5 @@
 # AURA — Pi Edge Smart Display
-
+![AURA — Your Talkative AI Desk Buddy](docs/images/AURA-Project-Thumbnail-v2.png)
 **AURA (Autonomous Ubiquitous Robotic Assistant on the Edge)** is a Raspberry Pi 4–based AI desk companion that combines **offline wake-word detection, local speech recognition, local LLM inference, text-to-speech, an animated touchscreen interface, and live system telemetry**.
 
 The completed build uses an **INMP441 I2S microphone**, a **MAX98357A amplifier and speaker**, and a **7-inch HDMI touchscreen**. The core voice pipeline runs on the Pi's CPU. **No camera or Google Coral TPU was used in the completed build.**
@@ -9,6 +9,8 @@ The completed build uses an **INMP441 I2S microphone**, a **MAX98357A amplifier 
 I wanted a small desk assistant that could listen, answer questions, and speak through its own hardware without making a cloud speech or language-model API the central dependency. I also wanted the screen to make the assistant's behavior understandable: a user should be able to see when it is waiting, listening, thinking, or speaking.
 
 The engineering challenge was to turn several independent AI tools into one usable Raspberry Pi device. That meant making the microphone and speaker work reliably through Linux audio, fitting the voice pipeline to limited compute resources, synchronizing the interface with the backend, and starting the system automatically after power-on.
+
+![AURA desk prototype](docs/images/AURA-Desk-Prototype.png)
 
 | Problem | How AURA addresses it | Current boundary |
 | --- | --- | --- |
@@ -20,6 +22,8 @@ The engineering challenge was to turn several independent AI tools into one usab
 | Difficulty observing a resource-constrained device | Displays CPU usage, RAM usage, and CPU temperature. | These metrics do not replace a controlled performance benchmark. |
 
 **The result:** a working voice-and-display prototype that brings local AI, physical audio hardware, an expressive interface, and automatic startup together on Raspberry Pi 4.
+
+![AURA hardware components](docs/images/AURA-Hardware-Overview.png)
 
 ## Key Learning Points
 
@@ -37,6 +41,8 @@ This project brought together the following practical engineering lessons:
 | Performance measurement | Distinguishing streaming output from truly concurrent speech playback, and measured latency from expected speed. |
 | Reproducibility and testing | Recognizing that model caches, OS configuration, stale tests, and dependency versions affect whether another person can reproduce a build. |
 | Documentation and attribution | Describing implemented features accurately and keeping third-party code, models, and enclosure credits intact. |
+
+![AURA — Your Talkative AI Desk Buddy](docs/images/AURA-System-Block-Diagram.png)
 
 ## Why This Project?
 
