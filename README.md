@@ -2,6 +2,13 @@
 ![AURA — Your Talkative AI Desk Buddy](docs/images/AURA-Project-Thumbnail-v2.png)
 **AURA (Autonomous Ubiquitous Robotic Assistant on the Edge)** is a Raspberry Pi 4–based AI desk companion that combines **offline wake-word detection, local speech recognition, local LLM inference, text-to-speech, an animated touchscreen interface, and live system telemetry**.
 
+
+https://github.com/user-attachments/assets/e7cccd35-a5b6-4db1-9f9c-d87a6db4e5a7
+
+
+
+
+
 The completed build uses an **INMP441 I2S microphone**, a **MAX98357A amplifier and speaker**, and a **7-inch HDMI touchscreen**. The core voice pipeline runs on the Pi's CPU. **No camera or Google Coral TPU was used in the completed build.**
 
 ## The Problem I Set Out to Solve
