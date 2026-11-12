@@ -872,3 +872,7 @@ For bugs and reproducibility reports, include the Pi model, RAM, OS/architecture
 [![Repository quality](https://github.com/AnasHussaink/Autonomous-Ubiquitous-Robotic-Assistant-on-the-Edge/actions/workflows/quality.yml/badge.svg)](https://github.com/AnasHussaink/Autonomous-Ubiquitous-Robotic-Assistant-on-the-Edge/actions/workflows/quality.yml)
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for branch/PR workflow, local checks and CI coverage.
+
+## Technical scope
+
+Raspberry Pi edge AI and embedded Linux: local voice assistant integration with Python, FastAPI, Ollama, Faster-Whisper, Piper, I2S and ALSA.
