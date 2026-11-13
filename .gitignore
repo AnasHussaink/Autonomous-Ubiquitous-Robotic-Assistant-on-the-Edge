@@ -17,3 +17,11 @@ audio_files/
 # VS Code & OS artifacts
 .vscode/
 .DS_Store
+
+# Local validation and build output
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.pio/
+build/

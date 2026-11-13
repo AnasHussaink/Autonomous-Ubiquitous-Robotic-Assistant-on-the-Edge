@@ -40,7 +40,7 @@ def test_face_detection_model(mock_video_capture, tmp_path):
   
   test_image_name = "images/test_data/two_faces_test.jpg"
   test_frame = cv2.imread(test_image_name)
-  assert test_frame is not None, f"Could not load test image from {test_image_path}"
+  assert test_frame is not None, f"Could not load test image from {test_image_name}"
 
   mock_cap = MagicMock()
   mock_cap.isOpened.return_value = True

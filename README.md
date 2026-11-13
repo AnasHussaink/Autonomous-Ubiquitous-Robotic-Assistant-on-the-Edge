@@ -865,3 +865,14 @@ Documentation image provenance is recorded in [`docs/ASSETS.md`](docs/ASSETS.md)
 - [openWakeWord](https://github.com/dscripka/openWakeWord), [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper), and [Piper releases](https://github.com/rhasspy/piper/releases)
 
 For bugs and reproducibility reports, include the Pi model, RAM, OS/architecture, relevant package/model versions, and the exact failing step in a [GitHub issue](https://github.com/AnasHussaink/Autonomous-Ubiquitous-Robotic-Assistant-on-the-Edge/issues).
+
+
+## Development and quality
+
+[![Repository quality](https://github.com/AnasHussaink/Autonomous-Ubiquitous-Robotic-Assistant-on-the-Edge/actions/workflows/quality.yml/badge.svg)](https://github.com/AnasHussaink/Autonomous-Ubiquitous-Robotic-Assistant-on-the-Edge/actions/workflows/quality.yml)
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for branch/PR workflow, local checks and CI coverage.
+
+## Technical scope
+
+Raspberry Pi edge AI and embedded Linux: local voice assistant integration with Python, FastAPI, Ollama, Faster-Whisper, Piper, I2S and ALSA.
